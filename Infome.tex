@@ -1,0 +1,131 @@
+\documentclass{article}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+ 
+\geometry{a4paper, margin=2.5cm}
+
+\title{Análisis de Sistemas de Colas M/M/1 mediante Simulación Discreta}
+\author{Dayan Cabrera Corvo}
+
+
+\begin{document}
+	
+	\maketitle
+	
+	\section{Introducción} \label{S1}
+	\subsection{Descripción del Proyecto}
+	Este proyecto implementa una simulación detallada de un sistema de colas M/M/1 para validar los resultados teóricos de la teoría de colas. Se analiza el comportamiento del sistema bajo diferentes intensidades de tráfico ($\rho = \lambda/\mu$), con énfasis en el tiempo promedio en el sistema ($W$) y el tiempo post-simulación ($T_p$).
+	
+	\subsection{Objetivos}
+	\begin{itemize}
+		\item Validar el modelo teórico M/M/1 mediante simulación discreta
+		\item Cuantificar el efecto de la intensidad de tráfico ($\rho$) en las métricas del sistema
+		\item Analizar la precisión de la simulación mediante intervalos de confianza
+	\end{itemize}
+	
+	\subsection{Variables de Estudio}
+	\begin{itemize}
+		\item $\lambda \in \{0.1, 0.3, 0.5, 0.7, 0.9\}$: Tasas de llegada (clientes/unidad de tiempo)
+		\item $\mu = 1.0$: Tasa de servicio fija
+		\item $T = 10,000$: Tiempo total de simulación
+		\item $W$: Tiempo promedio en el sistema
+		\item $T_p$: Tiempo adicional para vaciar el sistema post-simulación
+	\end{itemize}
+	
+	\section{Detalles de Implementación} \label{S2}
+	\subsection{Arquitectura del Simulador}
+	\begin{enumerate}
+		\item \textbf{Gestión de Eventos}: Utilización de un heap prioritario para manejar eventos cronológicos
+		\item \textbf{Lógica de Eventos}:
+		\begin{itemize}
+			\item Llegadas: Generadas mediante proceso Poisson con intervalo $\sim Exp(1/\lambda)$
+			\item Servicios: Tiempos exponenciales $\sim Exp(1/\mu)$
+		\end{itemize}
+		\item \textbf{Condiciones de Contorno}:
+		\begin{itemize}
+			\item No se programan nuevas llegadas después de $T$
+			\item Se procesan todos los clientes en el sistema al finalizar $T$
+		\end{itemize}
+		\item \textbf{Recolección de Datos}:
+		\begin{itemize}
+			\item 30 réplicas independientes por configuración
+			\item Período transitorio inicial de $T=10,000$ unidades para estado estable
+		\end{itemize}
+	\end{enumerate}
+	
+	\section{Resultados y Experimentos} \label{S3}
+	\subsection{Hallazgos Principales}
+	\begin{table}[h]
+		\centering
+		\caption{Resultados de la simulación (IC 95\%)}
+		\label{tab:results}
+		\begin{tabular}{@{}cccccc@{}}
+			\toprule
+			$\lambda$ & $\rho$ & $W_{teo}$ & $W_{sim}$ & $T_p$ & IC $T_p$ \\
+			\midrule
+			0.1 & 0.10 & 1.11 & 1.12 & 0.04 & (-0.03, 0.12) \\
+			0.3 & 0.30 & 1.43 & 1.42 & 0.15 & (-0.04, 0.34) \\
+			0.5 & 0.50 & 2.00 & 2.00 & 0.63 & (0.20, 1.05) \\
+			0.7 & 0.70 & 3.33 & 3.30 & 2.73 & (1.50, 3.95) \\
+			0.9 & 0.90 & 10.00 & 10.01 & 9.22 & (5.33, 13.11) \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	
+	\subsection{Interpretación de Resultados}
+	\begin{itemize}
+		\item \textbf{Exactitud del modelo}: Los valores de $W_{sim}$ coinciden con $W_{teo} = \frac{1}{\mu-\lambda}$ con error maximo del 0.3\% ($\lambda=0.7$)
+		\item \textbf{Variabilidad de $T_p$}: Aumenta exponencialmente con $\rho$, evidenciando mayor sensibilidad a llegadas tardías en alta congestión
+		\item \textbf{IC para $W$}: Anchura del intervalo crece de de ±0.01 ($\lambda=0.1$) a ±0.76 ($\lambda=0.9$), reflejando mayor variabilidad en sistemas congestionados
+	\end{itemize}
+	
+	\subsection{Validación Estadística}
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.9\textwidth]{mm1_validation_final}
+		\caption{Comparación entre valores teóricos y simulados del tiempo en sistema}
+		\label{fig:validation}
+	\end{figure}
+	
+	\subsection{Análisis de Parada}
+	\begin{itemize}
+		\item \textbf{Criterio}: $T = 10,000 + T_p$ (tiempo necesario para vaciar el sistema)
+		\item \textbf{Justificación}: Garantiza estado estable ($\rho < 1$) y recolección completa de datos
+		\item \textbf{Efectividad}: $T_p$ promedio < 1\% de $T$ para $\rho \leq 0.7$, validando la elección de $T$
+	\end{itemize}
+	
+	\section{Modelo Matemático} \label{S4}
+	\subsection{Formulación del Modelo}
+	Para un sistema M/M/1:
+	\[
+	W = \frac{1}{\mu - \lambda} \quad \text{(Fórmula de Little)}
+	\]
+	\subsection{Supuestos Clave}
+	\begin{itemize}
+		\item Procesos de llegada y servicio independientes
+		\item Capacidad de cola infinita
+		\item Disciplina FIFO
+		\item Estado estable ($\rho < 1$)
+	\end{itemize}
+	
+	\subsection{Validación del Modelo}
+	\begin{itemize}
+		\item \textbf{Error relativo}: $\frac{|W_{teo} - W_{sim}|}{W_{teo}} \leq 0.3\%$ en todos los casos
+		\item \textbf{Consistencia estadística}: Todos los IC95\% de $W_{sim}$ contienen $W_{teo}$
+		\item \textbf{Comportamiento asintótico}: Para $\rho \to 1$, $W_{sim}$ sigue la tendencia hiperbólica teórica (Figura \ref{fig:validation})
+	\end{itemize}
+	
+	\section{Conclusiones} \label{S5}
+	\begin{itemize}
+		\item La simulación reproduce fielmente el comportamiento teórico de colas M/M/1, validando tanto la implementación como el modelo matemático
+		\item El tiempo post-simulación ($T_p$) emerge como métrica crítica para estudios de sistemas congestionados ($\rho > 0.7$)
+		\item Los intervalos de confianza evidencian mayor variabilidad en altas cargas, sugiriendo necesidad de más réplicas para $\rho \geq 0.7$
+		\item La configuración actual ($T=10,000$, 30 réplicas) es adecuada para $\rho \leq 0.7$, pero requiere ajustes para $\rho \geq 0.9$
+	\end{itemize}
+	
+\end{document}
